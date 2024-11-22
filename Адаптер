@@ -1,0 +1,161 @@
+using System;
+
+public interface IInternalDeliveryService
+{
+    void DeliverOrder(string orderId);
+    string GetDeliveryStatus(string orderId);
+    decimal CalculateDeliveryCost(string orderId);
+}
+
+public class InternalDeliveryService : IInternalDeliveryService
+{
+    public void DeliverOrder(string orderId)
+    {
+        Console.WriteLine($"Заказ {orderId} доставляется внутренней службой.");
+    }
+
+    public string GetDeliveryStatus(string orderId)
+    {
+        return $"Статус заказа {orderId}: Доставлено внутренней службой.";
+    }
+
+    public decimal CalculateDeliveryCost(string orderId)
+    {
+        return 1000.00m;
+    }
+}
+
+public class ExternalLogisticsServiceA
+{
+    public void ShipItem(int itemId)
+    {
+        Console.WriteLine($"Товар {itemId} отправлен через Внешнюю службу A.");
+    }
+
+    public string TrackShipment(int shipmentId)
+    {
+        return $"Отслеживание отправки {shipmentId} через Внешнюю службу A.";
+    }
+
+    public decimal GetShippingCost(int itemId)
+    {
+        return 1500.00m;
+    }
+}
+
+public class ExternalLogisticsServiceB
+{
+    public void SendPackage(string packageInfo)
+    {
+        Console.WriteLine($"Посылка {packageInfo} отправлена через Внешнюю службу B.");
+    }
+
+    public string CheckPackageStatus(string trackingCode)
+    {
+        return $"Статус посылки {trackingCode} через Внешнюю службу B.";
+    }
+
+    public decimal GetShippingCost(string packageInfo)
+    {
+        return 2000.00m;
+    }
+}
+
+public class LogisticsAdapterA : IInternalDeliveryService
+{
+    private readonly ExternalLogisticsServiceA _externalServiceA;
+
+    public LogisticsAdapterA(ExternalLogisticsServiceA externalServiceA)
+    {
+        _externalServiceA = externalServiceA;
+    }
+
+    public void DeliverOrder(string orderId)
+    {
+        int itemId = int.Parse(orderId);
+        _externalServiceA.ShipItem(itemId);
+    }
+
+    public string GetDeliveryStatus(string orderId)
+    {
+        int shipmentId = int.Parse(orderId);
+        return _externalServiceA.TrackShipment(shipmentId);
+    }
+
+    public decimal CalculateDeliveryCost(string orderId)
+    {
+        int itemId = int.Parse(orderId);
+        return _externalServiceA.GetShippingCost(itemId);
+    }
+}
+
+public class LogisticsAdapterB : IInternalDeliveryService
+{
+    private readonly ExternalLogisticsServiceB _externalServiceB;
+
+    public LogisticsAdapterB(ExternalLogisticsServiceB externalServiceB)
+    {
+        _externalServiceB = externalServiceB;
+    }
+
+    public void DeliverOrder(string orderId)
+    {
+        _externalServiceB.SendPackage(orderId);
+    }
+
+    public string GetDeliveryStatus(string orderId)
+    {
+        return _externalServiceB.CheckPackageStatus(orderId);
+    }
+
+    public decimal CalculateDeliveryCost(string orderId)
+    {
+        return _externalServiceB.GetShippingCost(orderId);
+    }
+}
+
+public class DeliveryServiceFactory
+{
+    public static IInternalDeliveryService GetDeliveryService(string serviceType)
+    {
+        switch (serviceType)
+        {
+            case "Internal":
+                return new InternalDeliveryService();
+            case "ExternalA":
+                return new LogisticsAdapterA(new ExternalLogisticsServiceA());
+            case "ExternalB":
+                return new LogisticsAdapterB(new ExternalLogisticsServiceB());
+            default:
+                throw new ArgumentException("Неизвестный тип службы.");
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            IInternalDeliveryService internalService = DeliveryServiceFactory.GetDeliveryService("Internal");
+            internalService.DeliverOrder("112");
+            Console.WriteLine(internalService.GetDeliveryStatus("123"));
+            Console.WriteLine($"Стоимость: {internalService.CalculateDeliveryCost("112")}");
+
+            IInternalDeliveryService externalServiceA = DeliveryServiceFactory.GetDeliveryService("ExternalA");
+            externalServiceA.DeliverOrder("476");
+            Console.WriteLine(externalServiceA.GetDeliveryStatus("456"));
+            Console.WriteLine($"Стоимость: {externalServiceA.CalculateDeliveryCost("476")}");
+
+            IInternalDeliveryService externalServiceB = DeliveryServiceFactory.GetDeliveryService("ExternalB");
+            externalServiceB.DeliverOrder("749");
+            Console.WriteLine(externalServiceB.GetDeliveryStatus("789"));
+            Console.WriteLine($"Стоимость: {externalServiceB.CalculateDeliveryCost("749")}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+}
